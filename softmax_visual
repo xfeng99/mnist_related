@@ -1,0 +1,82 @@
+import numpy as np
+import math
+from scipy.optimize import minimize
+from scipy.special import logsumexp
+from numpy.random import randn
+import matplotlib.pyplot as plt
+
+# reading datasets
+from tensorflow.examples.tutorials.mnist import input_data
+import tensorflow as tf
+mnist = input_data.read_data_sets('MNIST_data/', one_hot=True)
+# images
+tr_im = mnist.train.images # training set
+validation_X = mnist.validation.images # validation set
+t_im = mnist.test.images # testing set
+# labels
+tr_lb = mnist.train.labels # training set
+validation_Y = mnist.validation.labels # validation set
+t_lb = mnist.test.labels # testing set
+
+tr_lb_ary = tr_lb.nonzero()[1]
+t_lb_ary = t_lb.nonzero()[1]
+
+
+def visualization(file, amount):
+    if amount%5!=0:
+        print('amount should be a multiply of 5!')
+        return
+    r = 5
+    c = int(amount/5)
+    fig, ax = plt.subplots(nrows=r,ncols=c,sharex='all',sharey='all')
+    ax = ax.flatten()
+    for i in range(amount):
+        img = file[i].reshape(28, 28)
+        ax[i].imshow(img,cmap='Greys')
+    ax[0].set_xticks([])
+    ax[0].set_yticks([])
+    plt.tight_layout()
+    plt.show()
+    return
+    
+    # vectorrize
+def train(X,Y,max_iter): 
+    # initializing 
+    num = X.shape[0]
+    size = X.shape[1]
+    label_amount = Y.shape[1]
+    loss = 0
+    learning_rate = 1e-3
+    X=np.insert(X,0,values=1.0,axis=1) # for theta[0]=1            # 55000*785
+    w = np.zeros([size+1,label_amount])                            # 785*10
+    z = np.zeros([label_amount,num])                                # 10*55000
+    z -= np.max(np.dot(X,w))                                # 55000*10
+
+    for i in range(max_iter):
+        z = np.dot(X,w)
+        # softmax fn
+        h = (np.exp(z).T / np.sum(np.exp(z), axis=1))               # 55000*10
+        # gradient 
+        gradient = (1/size)*np.dot(X.T,(h.T-Y))                           # 785*10
+        w = w-learning_rate*gradient                                      
+    return w,gradient
+    
+def predict(w, X):
+    X=np.insert(X,0,values=1.0,axis=1) # for theta[0]=1
+    z = (np.dot(X,w))                           # 10000*10
+    h = (np.exp(z).T / np.sum(np.exp(z), axis=1))  # 10000*10
+    print()
+    y_pred = np.argmax(h, axis=0)
+    return y_pred
+    
+def get_accuracy(pred_y,Y):
+    return sum(pred_y==Y)/Y.shape[0]
+    
+visualization(tr_im,30)
+    
+w,dw = train(tr_im,tr_lb,1000)
+
+pred_y = predict(w,t_im)
+pred_y
+
+get_accuracy(pred_y,t_lb_ary)
